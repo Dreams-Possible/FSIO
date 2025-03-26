@@ -8,11 +8,6 @@
 #define MAX_PATH_LEN 1*1024//路径长度上限
 #define ROOT_PATH "/Users/Windows/Desktop/FSIO"//must begin with /
 
-//定义
-#define DIR_TYPE 1
-#define FILE_TYPE 2
-#define NULL_TYPE 3
-
 //FSIO资源
 typedef struct fsio_t
 {
@@ -32,6 +27,10 @@ static char*fill_path(char*path);
 static uint8_t dir_list();
 //打印当前文件
 static uint8_t file_print();
+//FSIO创建目标
+uint8_t fsio_creat(uint8_t type,char*path);
+//FSIO删除目标
+uint8_t fsio_delete(char*path);
 
 //FSIO初始化
 uint8_t fsio_init()
@@ -69,20 +68,20 @@ static uint8_t data_type(char*path)
     {
         closedir(dir);
         fclose(fl);
-        return DIR_TYPE;
+        return FSIO_TYPE_DIR;
     }else
     //是文件
     if(fl!=NULL)
     {
         closedir(dir);
         fclose(fl);
-        return FILE_TYPE;
+        return FSIO_TYPE_FILE;
     }else
     //无效路径
     {
         closedir(dir);
         fclose(fl);
-        return NULL_TYPE;
+        return FSIO_TYPE_NULL;
     }
 }
 
@@ -102,7 +101,7 @@ uint8_t fsio_open(char*path)
     switch(type)
     {
         //如果是目录
-        case DIR_TYPE:
+        case FSIO_TYPE_DIR:
             //释放上一路径资源
             free(fsio->path);
             //更新当前路径
@@ -111,7 +110,7 @@ uint8_t fsio_open(char*path)
             dir_list();
         break;
         //如果是文件
-        case FILE_TYPE:
+        case FSIO_TYPE_FILE:
             //释放上一路径资源
             free(fsio->path);
             //更新当前路径
@@ -127,7 +126,6 @@ uint8_t fsio_open(char*path)
             return 1;
         break;
     }
-    return 0;
 }
 
 //补全路径
@@ -238,4 +236,211 @@ static uint8_t file_print()
     return 0;
 }
 
+//FSIO创建目标
+uint8_t fsio_creat(uint8_t type,char*path)
+{
+    //路径为空
+    if(!path)
+    {
+        err_print("fsio: fsio_init: invaild path\n");
+        return 1;
+    }
+    //补全完整路径
+    char*full_path=fill_path(path);
+    switch(type)
+    {
+        //如果是目录
+        case FSIO_TYPE_DIR:
+        {      
+                //创建目录
+                int32_t dir=mkdir(full_path);//,0755);
+                // int32_t dir=mkdir("C:/Users/Windows/Desktop/FSIO/Project/testdir");//,0755);
+                // err_print("fsio: fsio_creat: %d\n",file);
+                if(dir)
+                {
+                    err_print("fsio: fsio_creat: creat fail\n");
+                    return 1;
+                }
+                err_print("fsio: fsio_creat: creat ok\n");
+                return 0;
+        }break;
+        //如果是文件
+        case FSIO_TYPE_FILE:
+        {
+            //创建文件
+            int32_t file=open(full_path,O_CREAT|O_EXCL,0644);
+            // int32_t file=open("C:/Users/Windows/Desktop/FSIO/Project/testdir",O_CREAT|O_EXCL,0644);
+            // err_print("fsio: fsio_creat: %d\n",file);
+            if(file<0)
+            {
+                err_print("fsio: fsio_creat: creat fail\n");
+                return 1;
+            }
+            err_print("fsio: fsio_creat: creat ok\n");
+            //关闭文件
+            close(file);
+            return 0;
+        }break;
+        //路径无效
+        default:
+        {
+            //释放路径资源
+            free(full_path);
+            err_print("fsio: fsio_creat: invaild type\n");
+            return 1;
+        }break;
+    }
+}
+
+//FSIO删除目标
+uint8_t fsio_delete(char*path)
+{
+    //路径为空
+    if(!path)
+    {
+        err_print("fsio: fsio_init: invaild path\n");
+        return 1;
+    }
+    //补全完整路径
+    char*full_path=fill_path(path);
+    //判断目标类型
+    uint8_t type=data_type(full_path);
+    switch(type)
+    {
+        //如果是目录
+        case FSIO_TYPE_DIR:
+        {      
+            int32_t delete=rmdir(full_path);
+            // int32_t delete=rmdir("C:/Users/Windows/Desktop/FSIO/Project/testdir");
+            // err_print("fsio: fsio_delete: %d\n",delete);
+            if(delete)
+            {
+                err_print("fsio: fsio_delete: delete fail\n");
+                return 1;
+            }
+            err_print("fsio: fsio_delete: delete ok\n");
+            return 0;
+        }break;
+        //如果是文件
+        case FSIO_TYPE_FILE:
+        {
+            int32_t delete=unlink(full_path);
+            // int32_t delete=unlink("C:/Users/Windows/Desktop/FSIO/Project/test.txt");
+            // err_print("fsio: fsio_delete: %d\n",delete);
+            if(delete<0)
+            {
+                err_print("fsio: fsio_delete: delete fail\n");
+                return 1;
+            }
+            err_print("fsio: fsio_delete: delete ok\n");
+            return 0;
+        }break;
+        //路径无效
+        default:
+        {
+            //释放路径资源
+            free(full_path);
+            err_print("fsio: fsio_creat: invaild type\n");
+            return 1;
+        }break;
+    }
+}
+
 #endif//#ifdef FSIO_H
+
+
+// //FSIO创建目标
+// uint8_t fsio_creat(char*path)
+// {
+//     //创建文件
+//     int32_t file=open("C:/Users/Windows/Desktop/FSIO/Project/test.txt",O_CREAT|O_EXCL,0644);
+//     // err_print("fsio: fsio_creat: %d\n",file);
+//     if(file<0)
+//     {
+//         err_print("fsio: fsio_creat: creat fail\n");
+//         return 1;
+//     }
+//     err_print("fsio: fsio_creat: creat ok\n");
+//     //关闭文件
+//     close(file);
+//     return 0;
+// }
+
+
+// //FSIO删除目标
+// uint8_t fsio_delete(char*path)
+// {
+//     int32_t delete=unlink("C:/Users/Windows/Desktop/FSIO/Project/test.txt");
+//     // err_print("fsio: fsio_delete: %d\n",delete);
+//     if(delete<0)
+//     {
+//         err_print("fsio: fsio_delete: delete fail\n");
+//         return 1;
+//     }
+//     err_print("fsio: fsio_delete: delete ok\n");
+//     return 0;
+// }
+
+// //FSIO创建目标
+// uint8_t fsio_creat(char*path)
+// {
+//     //创建目录
+//     int32_t dir=mkdir("C:/Users/Windows/Desktop/FSIO/Project/testdir");//,0755);
+//     // err_print("fsio: fsio_creat: %d\n",file);
+//     if(dir)
+//     {
+//         err_print("fsio: fsio_creat: creat fail\n");
+//         return 1;
+//     }
+//     err_print("fsio: fsio_creat: creat ok\n");
+//     return 0;
+// }
+
+// //FSIO删除目标
+// uint8_t fsio_delete(char*path)
+// {
+//     int32_t delete=rmdir("C:/Users/Windows/Desktop/FSIO/Project/testdir");
+//     // err_print("fsio: fsio_delete: %d\n",delete);
+//     if(delete)
+//     {
+//         err_print("fsio: fsio_delete: delete fail\n");
+//         return 1;
+//     }
+//     err_print("fsio: fsio_delete: delete ok\n");
+//     return 0;
+// }
+
+
+
+
+
+    // //路径为空
+    // if(!path)
+    // {
+    //     err_print("fsio: fsio_init: invaild path\n");
+    //     return 1;
+    // }
+    // //补全完整路径
+    // char*full_path=fill_path(path);
+    // //判断目标类型
+    // uint8_t type=data_type(full_path);
+    // switch(type)
+    // {
+    //     //如果是目录
+    //     case FSIO_TYPE_DIR:
+
+    //     break;
+    //     //如果是文件
+    //     case FSIO_TYPE_FILE:
+
+    //     break;
+    //     //路径无效
+    //     default:
+    //         //释放路径资源
+    //         free(full_path);
+    //         err_print("fsio: fsio_init: invaild type\n");
+    //         return 1;
+    //     break;
+    // }
+    // return 0;
+

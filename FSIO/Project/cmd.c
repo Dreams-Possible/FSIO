@@ -77,17 +77,54 @@ void cmd_run()
             //如果有参数
             if(cmd->use!=NULL)
             {
-                //显示当前目标
+                //显示目标
                 if(strcmp(cmd->use,"l")==0)
                 {
                     fsio_open("");
                 }else
-                //打开新目标
+                //打开目标
                 if(strcmp(cmd->use,"o")==0)
                 {
                     char*path=strtok(NULL," ");
                     fsio_open(path);
                 }else
+                //创建目标
+                if(strcmp(cmd->use,"c")==0)
+                {
+                    char*type=strtok(NULL," ");
+                    char*path=strtok(NULL," ");
+                    if(type&&path)
+                    {
+                        switch(type[0])
+                        {
+                            case 'd':
+                                fsio_creat(FSIO_TYPE_DIR,path);
+                            break;
+                            case 'f':
+                                fsio_creat(FSIO_TYPE_FILE,path);
+                            break;
+                            default:
+                                fsio_creat(FSIO_TYPE_NULL,path);
+                            break;
+                        }
+                    }else
+                    {
+                        err_print("cmd: cmd_run: can not find cmd\n");
+                    }
+                }else
+                //删除目标
+                if(strcmp(cmd->use,"d")==0)
+                {
+                    char*path=strtok(NULL," ");
+                    fsio_delete(path);
+                }else
+                // //用于测试
+                // if(strcmp(cmd->use,"t")==0)
+                // {
+                //     char*path=strtok(NULL," ");
+                //     // fsio_creat(path);
+                //     // fsio_delete(path);
+                // }else
                 {
                     err_print("cmd: cmd_run: can not find cmd\n");
                 }
